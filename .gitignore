@@ -1,0 +1,51 @@
+# Python 虚拟环境
+.venv/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 分发/打包
+dist/
+build/
+*.egg-info/
+*.egg
+
+# 环境变量（含敏感信息）
+.env
+.env.*
+
+# API 密钥加密存储（含密钥文件与加密的 API Key，切勿提交；删除后程序会自动重建）
+/data/
+/backend/data/
+
+# 日志文件
+*.log
+
+# 上传文件（用户上传的临时图片，缓存于 data 下）
+/data/uploads/
+
+# 输出文件（转换生成的图片，缓存于 data 下）
+/data/output/
+
+# 本地测试图片
+/商品.jpg
+/目标.png
+/final_result.png
+
+# 工作日报
+/工作日报/
+
+# 参考图/模板图
+/图/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/

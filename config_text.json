@@ -1,0 +1,87 @@
+{
+    "lines": [
+        {
+            "text": "爆款热卖",
+            "position": [
+                80,
+                60
+            ],
+            "font_size": 68,
+            "color": [
+                255,
+                255,
+                255
+            ],
+            "outline_color": [
+                0,
+                0,
+                0
+            ],
+            "outline_width": 3,
+            "align": "left"
+        },
+        {
+            "text": "限时特惠 · 品质保证 · 顺丰包邮",
+            "position": [
+                80,
+                145
+            ],
+            "font_size": 32,
+            "color": [
+                255,
+                255,
+                220
+            ],
+            "outline_color": [
+                0,
+                0,
+                0
+            ],
+            "outline_width": 1,
+            "align": "left"
+        },
+        {
+            "text": "¥ 99.00",
+            "position": [
+                80,
+                1650
+            ],
+            "font_size": 60,
+            "color": [
+                255,
+                50,
+                50
+            ],
+            "outline_color": [
+                255,
+                255,
+                255
+            ],
+            "outline_width": 2,
+            "align": "left"
+        },
+        {
+            "text": "HOT",
+            "position": [
+                1700,
+                60
+            ],
+            "font_size": 40,
+            "color": [
+                255,
+                255,
+                255
+            ],
+            "shadow_offset": [
+                2,
+                2
+            ],
+            "shadow_color": [
+                0,
+                0,
+                0
+            ],
+            "align": "right"
+        }
+    ]
+}

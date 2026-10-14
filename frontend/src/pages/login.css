@@ -1,0 +1,613 @@
+/* ============================================================
+   login.css — 登录页「细节工艺」样式
+   参考 detail.design 的设计策略：
+   - accessibility-1  保持可见的焦点环（focus ring）
+   - motion-16        死路时轻摇表面（shake）
+   - motion-17        高亮块在选项间滑动（slide highlight）
+   - typography-5     品牌化文字选中色（::selection）
+   - physics over magic / craft over decoration
+   原则：克制、低对比、尊重 prefers-reduced-motion
+   ============================================================ */
+
+/* ---- 输入框：焦点环 + 边框微过渡（accessibility-1） ---- */
+.login-input {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-input:hover {
+    border-color: #c7ccda;
+}
+
+.login-input:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    outline: none;
+}
+
+/* ---- 主按钮：悬停阴影/背景加深 + 流光扫过（不移动布局，避免 3D 场景下光标闪烁） ---- */
+.btn-primary {
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -90%;
+    width: 55%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: skewX(-18deg);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.btn-primary:not(:disabled):hover::after {
+    left: 140%;
+}
+
+.btn-primary:not(:disabled):hover {
+    box-shadow: 0 10px 26px rgba(79, 110, 247, 0.35);
+    background: linear-gradient(135deg, #4060f6, #8558f0);
+}
+
+.btn-primary:not(:disabled):active {
+    box-shadow: 0 6px 18px rgba(79, 110, 247, 0.28);
+}
+
+/* ---- 次级按钮：边框/底色随悬停过渡 ---- */
+.btn-ghost {
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-ghost:not(:disabled):hover {
+    border-color: #8b5cf6;
+    background: #f6f3ff;
+    color: #4f6ef7;
+}
+
+.btn-ghost:not(:disabled):active {
+    transform: translateY(0);
+}
+
+/* ---- 死路反馈：登录失败轻摇卡片（motion-16） ---- */
+@keyframes loginShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20% {
+        transform: translateX(-7px);
+    }
+
+    40% {
+        transform: translateX(6px);
+    }
+
+    60% {
+        transform: translateX(-4px);
+    }
+
+    80% {
+        transform: translateX(3px);
+    }
+}
+
+.login-shake {
+    animation: loginShake 0.4s ease;
+}
+
+/* ---- Logo 环境光：首次进入的安静微光（easter-egg-1 式小惊喜，低强度） ---- */
+@keyframes logoGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 8px 32px rgba(79, 110, 247, 0.30);
+    }
+
+    50% {
+        box-shadow: 0 10px 48px rgba(79, 110, 247, 0.42);
+    }
+}
+
+.login-logo {
+    animation: logoGlow 3.2s ease-in-out infinite;
+}
+
+/* ===================== 华丽动效 ===================== */
+
+/* ---- 逐字错峰入场（标题逐字升起 + 模糊消散） ---- */
+@keyframes loginCharIn {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.92);
+        filter: blur(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+.login-char {
+    display: inline-block;
+    animation: loginCharIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---- 整块错峰入场（Logo / 副标题 / 页脚） ---- */
+@keyframes loginEnter {
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+        filter: blur(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+.login-enter {
+    animation: loginEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 卡片 3D 唤醒入场：从倾倒状态弹起成 3D 立体（backwards 填充，入场结束后让位于 JS 驱动的 3D 倾斜） */
+@keyframes loginCardWake {
+    0% {
+        opacity: 0;
+        transform: perspective(900px) rotateX(68deg) translateY(38px) scale(0.9);
+    }
+
+    55% {
+        opacity: 1;
+        transform: perspective(900px) rotateX(-7deg) translateY(-5px) scale(1.015);
+    }
+
+    75% {
+        transform: perspective(900px) rotateX(3deg) translateY(1px) scale(0.998);
+    }
+
+    100% {
+        opacity: 1;
+        transform: perspective(900px) rotateX(0) translateY(0) scale(1);
+    }
+}
+
+.login-card-enter {
+    animation: loginCardWake 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.4s backwards;
+}
+
+/* 入场动画结束后彻底清除（避免卡在 68° 倾倒帧压缩布局，导致按钮点击异常 / 光标闪烁） */
+.login-card-done {
+    animation: none !important;
+}
+
+/* ---- 胶囊滑块（独立于 3D 填写模块之外） ---- */
+.login-pill {
+    position: relative;
+    display: flex;
+    width: 260px;
+    height: 46px;
+    padding: 5px;
+    margin: 0 auto 22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 6px 24px rgba(31, 45, 91, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 2;
+}
+
+.login-pill-thumb {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 5px;
+    width: calc(50% - 5px);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #4f6ef7, #8b5cf6);
+    box-shadow: 0 4px 14px rgba(79, 110, 247, 0.4);
+    /* 与卡片翻转 0.55s 对齐，切换节奏一致 */
+    transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+}
+
+.login-pill-btn {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: color 0.25s;
+}
+
+.login-pill-btn:focus-visible {
+    outline: 2px solid #4f6ef7;
+    outline-offset: 2px;
+}
+
+/* ---- 3D 翻转填写模块：正面登录 / 背面注册 ---- */
+.login-card3d {
+    perspective: 900px;
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+
+.login-flip {
+    display: grid;
+    transform-style: preserve-3d;
+    /* 快起步缓动（easeOutCubic）：点击后第一帧即有可见转动，避免慢起步的「停顿感」 */
+    transition: transform 0.5s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.login-flip.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.login-face {
+    grid-area: 1 / 1;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.login-face-back {
+    transform: rotateY(180deg);
+}
+
+/* ---- 交互式流体层：固定方向单向流动层（配合 JS 指数平滑视差；无 SVG 置换滤镜） ---- */
+.login-fluid-field {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 跟随鼠标的光团：使用全局 .ui-cursor-glow（与营销海报生成器等其他页面完全一致），
+   这里仅把登录页的主题色对齐为紫色，观感与海报页相同 */
+body:has(.login-page) .ui-cursor-glow {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.07) 42%, transparent 68%);
+}
+
+/* 固定方向单向流动层：多层光晕按周期排列（每对间隔 50% 保证无缝），background-position 单向循环 → 流体持续向右淌 */
+.login-flow {
+    position: absolute;
+    inset: -12% -25%;
+    pointer-events: none;
+    background-image:
+        radial-gradient(38vw 38vw at 5% 28%, rgba(139, 92, 246, 0.55), transparent 58%),
+        radial-gradient(38vw 38vw at 55% 28%, rgba(139, 92, 246, 0.55), transparent 58%),
+        radial-gradient(34vw 34vw at 25% 70%, rgba(79, 110, 247, 0.5), transparent 58%),
+        radial-gradient(34vw 34vw at 75% 70%, rgba(79, 110, 247, 0.5), transparent 58%),
+        radial-gradient(36vw 36vw at 35% 38%, rgba(124, 104, 238, 0.48), transparent 58%),
+        radial-gradient(36vw 36vw at 85% 38%, rgba(124, 104, 238, 0.48), transparent 58%),
+        radial-gradient(30vw 30vw at 15% 88%, rgba(139, 92, 246, 0.42), transparent 58%),
+        radial-gradient(30vw 30vw at 65% 88%, rgba(139, 92, 246, 0.42), transparent 58%),
+        radial-gradient(28vw 28vw at 45% 12%, rgba(79, 110, 247, 0.4), transparent 58%),
+        radial-gradient(28vw 28vw at 95% 12%, rgba(79, 110, 247, 0.4), transparent 58%),
+        radial-gradient(32vw 32vw at 10% 55%, rgba(124, 104, 238, 0.38), transparent 58%),
+        radial-gradient(32vw 32vw at 60% 55%, rgba(124, 104, 238, 0.38), transparent 58%),
+        radial-gradient(30vw 30vw at 30% 45%, rgba(236, 72, 153, 0.30), transparent 58%),
+        radial-gradient(30vw 30vw at 80% 45%, rgba(236, 72, 153, 0.30), transparent 58%);
+    background-size: 200% 100%;
+    background-repeat: repeat-x;
+    animation: loginFlowX 8s linear infinite;
+    will-change: background-position;
+}
+
+@keyframes loginFlowX {
+    from {
+        background-position: 100% 50%;
+    }
+
+    to {
+        background-position: 0% 50%;
+    }
+}
+
+/* ---- 悬浮粒子：白色发光核心 + 紫色光晕的小光球 ---- */
+@keyframes loginFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) translateX(0) scale(1);
+        opacity: 0.45;
+    }
+
+    25% {
+        transform: translateY(-36px) translateX(15px) scale(1.18);
+        opacity: 0.85;
+    }
+
+    50% {
+        transform: translateY(14px) translateX(-12px) scale(0.88);
+        opacity: 0.6;
+    }
+
+    75% {
+        transform: translateY(-18px) translateX(-20px) scale(1.12);
+        opacity: 0.9;
+    }
+}
+
+.login-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(139, 92, 246, 0.6) 55%, rgba(79, 110, 247, 0.25) 100%);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.55), 0 0 22px rgba(79, 110, 247, 0.35);
+    pointer-events: none;
+    animation: loginFloat 7s ease-in-out infinite;
+    z-index: 0;
+}
+
+/* ===================== 高级背景特效（液态光效） ===================== */
+
+/* ---- 极光层：三块大尺度色斑缓慢漂移旋转（配合 JS 深层视差） ---- */
+.login-aurora {
+    position: absolute;
+    inset: -20%;
+    z-index: 0;
+    pointer-events: none;
+    filter: blur(70px);
+    will-change: transform;
+}
+
+.login-aurora-blob {
+    position: absolute;
+    border-radius: 50%;
+    animation: loginAuroraDrift 24s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes loginAuroraDrift {
+    0% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    }
+
+    100% {
+        transform: translate3d(56px, -38px, 0) rotate(9deg) scale(1.14);
+    }
+}
+
+/* ---- 玻璃光球层：毛玻璃圆角片悬浮漂浮（中层视差，外浮动 / 内玻璃） ---- */
+.login-glass-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.login-glass-float {
+    position: absolute;
+    animation: loginGlassFloat 18s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes loginGlassFloat {
+    0% {
+        transform: translate3d(0, 0, 0) rotate(-4deg);
+    }
+
+    100% {
+        transform: translate3d(26px, -30px, 0) rotate(6deg);
+    }
+}
+
+.login-glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+        0 12px 40px rgba(79, 110, 247, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+/* ---- 丁达尔光柱层：柔和光束缓慢摆动（近层视差） ---- */
+.login-rays {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    will-change: transform;
+}
+
+.login-ray {
+    position: absolute;
+    top: -18%;
+    height: 136%;
+    width: 90px;
+    background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.06) 28%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0.06) 72%, transparent 100%);
+    filter: blur(7px);
+    transform-origin: 50% 0;
+    animation: loginRaySway 14s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes loginRaySway {
+    from {
+        transform: rotate(6deg) scaleY(1);
+        opacity: 0.45;
+    }
+
+    to {
+        transform: rotate(18deg) scaleY(1.05);
+        opacity: 0.9;
+    }
+}
+
+/* ---- 流星：偶发划过夜空的光迹 ---- */
+.login-star {
+    position: absolute;
+    z-index: 0;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px 2px rgba(139, 92, 246, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    animation: loginShoot 8s linear infinite;
+    will-change: transform, opacity;
+}
+
+.login-star::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    height: 1.5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), rgba(139, 92, 246, 0.25), transparent);
+    transform-origin: left center;
+}
+
+@keyframes loginShoot {
+    0% {
+        transform: translate3d(0, 0, 0) rotate(-32deg);
+        opacity: 0;
+    }
+
+    2.5% {
+        opacity: 1;
+    }
+
+    9% {
+        transform: translate3d(-540px, 330px, 0) rotate(-32deg);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate3d(-540px, 330px, 0) rotate(-32deg);
+        opacity: 0;
+    }
+}
+
+/* ---- 胶片颗粒：SVG 湍流噪点 + 低速抖动（电影质感） ---- */
+.login-grain {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 300px 300px;
+    animation: loginGrainShift 1.4s steps(4) infinite;
+}
+
+@keyframes loginGrainShift {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(-2%, 1.5%);
+    }
+
+    50% {
+        transform: translate(2%, -1%);
+    }
+
+    75% {
+        transform: translate(-1.5%, -2%);
+    }
+
+    100% {
+        transform: translate(1.5%, 2%);
+    }
+}
+
+/* ---- 暗角：边缘柔化收束，聚焦中心 ---- */
+.login-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 40%, transparent 52%, rgba(31, 42, 86, 0.16) 100%);
+}
+
+/* ---- 背景点击涟漪：点击空白处泛起主题色光环 ---- */
+.login-ripple-ring {
+    position: absolute;
+    z-index: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(139, 92, 246, 0.55);
+    box-shadow: 0 0 22px rgba(139, 92, 246, 0.35), inset 0 0 14px rgba(139, 92, 246, 0.22);
+    transform: scale(0);
+    opacity: 0.7;
+    pointer-events: none;
+    animation: loginRippleRing 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes loginRippleRing {
+    to {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+/* ---- 品牌化文字选中色（typography-5） ---- */
+.login-page ::selection {
+    background: rgba(139, 92, 246, 0.22);
+}
+
+/* ---- 尊重系统"减少动态效果"偏好 ---- */
+@media (prefers-reduced-motion: reduce) {
+
+    .login-logo,
+    .login-shake,
+    .login-char,
+    .login-enter,
+    .login-card-enter {
+        animation: none !important;
+    }
+
+    .login-fluid-field,
+    .login-particle,
+    .login-aurora,
+    .login-aurora-blob,
+    .login-glass-layer,
+    .login-glass-float,
+    .login-rays,
+    .login-ray,
+    .login-star,
+    .login-grain {
+        display: none !important;
+    }
+
+    .login-tab-highlight,
+    .login-pill-thumb,
+    .login-flip,
+    .login-pill-btn {
+        transition: none !important;
+    }
+
+    .login-input {
+        transition: none !important;
+    }
+
+    .btn-primary,
+    .btn-ghost {
+        transition: none !important;
+    }
+
+    .btn-primary::after {
+        display: none !important;
+    }
+}

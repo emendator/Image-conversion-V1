@@ -1,0 +1,35 @@
+# ============================================================
+# 图片转换工具 - FastAPI 后端 systemd 服务
+# 部署位置: /etc/systemd/system/image-conversion.service
+#
+# 说明：
+#   - 以 www-data 用户运行，便于读写 /opt/image-conversion/data/
+#   - 模块路径 backend.main:app，WorkingDirectory 必须是项目根目录
+#   - 监听 127.0.0.1:8005，仅内网由 Nginx 反代
+# ============================================================
+
+[Unit]
+Description=Image Conversion FastAPI Backend
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# 后端工作目录（项目根，backend 包所在目录）
+WorkingDirectory=/opt/image-conversion
+
+# 启动命令：监听 127.0.0.1:8005
+ExecStart=/opt/image-conversion/backend/.venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8005 --workers 1
+
+Restart=always
+RestartSec=3
+
+Environment=PYTHONUNBUFFERED=1
+
+# 上传/输出文件较多时提高文件描述符上限
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

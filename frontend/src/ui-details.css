@@ -1,0 +1,378 @@
+/* ============================================================
+   ui-details.css — 三个生成器页面的「细节工艺」共享样式
+   参考 detail.design 设计策略：
+   - accessibility-1  保持可见焦点环（focus ring）
+   - motion-16/24     死路时轻摇表面（shake on dead end）
+   - physics over magic 悬停轻抬 / 按下回落
+   - typography-5     品牌化文字选中色（::selection）
+   - ambient over obvious 环境光氛围，低对比不抢眼
+   通过 --accent-rgb 变量适配三页各自主题色
+   ============================================================ */
+
+/* ---- 每页主题色 ---- */
+.ui-page-blue {
+    --accent-rgb: 79, 110, 247;
+}
+
+/* 电商主图 */
+.ui-page-purple {
+    --accent-rgb: 139, 92, 246;
+}
+
+/* 营销海报 */
+.ui-page-orange {
+    --accent-rgb: 249, 115, 22;
+}
+
+/* 营销切片 */
+
+/* ---- 页面背景：主题色渐变（清晰可见：有颜色 → 渐淡） ---- */
+.ui-page {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(900px 520px at 85% -10%, rgba(var(--accent-rgb), 0.18), transparent 60%),
+        linear-gradient(165deg, rgba(var(--accent-rgb), 0.24) 0%, rgba(var(--accent-rgb), 0.04) 100%);
+}
+
+/* 页面内容置于背景之上 */
+.ui-page>* {
+    position: relative;
+    z-index: 1;
+}
+
+/* ---- 输入框：悬停 + 焦点环（accessibility-1） ---- */
+.ui-input {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-input:hover {
+    border-color: #c7ccda;
+}
+
+.ui-input:focus {
+    border-color: rgb(var(--accent-rgb));
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+    outline: none;
+}
+
+/* ---- 主操作按钮：悬停轻抬、按下回落（physics over magic） ---- */
+.ui-btn-primary {
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.ui-btn-primary:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+}
+
+.ui-btn-primary:not(:disabled):active {
+    transform: translateY(1px) scale(0.99);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+}
+
+/* ---- 次级按钮（+ / ✕ 等）：悬停描边变色 ---- */
+.ui-btn-ghost {
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.ui-btn-ghost:not(:disabled):hover {
+    border-color: rgb(var(--accent-rgb));
+    background: rgba(var(--accent-rgb), 0.06);
+}
+
+.ui-btn-ghost:not(:disabled):active {
+    transform: translateY(0);
+}
+
+/* ---- 折叠面板箭头：平滑旋转（motion-17 同源缓动） ---- */
+.ui-chevron {
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- 模板/素材卡片：悬停轻抬 ---- */
+.ui-tpl {
+    transition: transform 0.15s ease;
+}
+
+.ui-tpl:hover {
+    transform: translateY(-2px);
+}
+
+/* ---- 死路反馈：校验失败轻摇（motion-16/24） ---- */
+@keyframes uiShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20% {
+        transform: translateX(-7px);
+    }
+
+    40% {
+        transform: translateX(6px);
+    }
+
+    60% {
+        transform: translateX(-4px);
+    }
+
+    80% {
+        transform: translateX(3px);
+    }
+}
+
+.ui-shake {
+    animation: uiShake 0.4s ease;
+}
+
+/* ---- Logo 环境光：安静的呼吸微光（首次进入的小惊喜） ----
+   性能：无限 box-shadow 动画会逐帧触发重绘，改为静态阴影 */
+.ui-logo-glow {
+    animation: none;
+    box-shadow: 0 8px 32px rgba(var(--accent-rgb), 0.28);
+}
+
+/* ---- 入场序列（motion-18：依次出现，为阅读顺序留出路径） ---- */
+@keyframes uiRiseIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ui-rise {
+    animation: uiRiseIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.ui-rise-1 {
+    animation-delay: 0.05s;
+}
+
+.ui-rise-2 {
+    animation-delay: 0.12s;
+}
+
+.ui-rise-3 {
+    animation-delay: 0.19s;
+}
+
+/* ---- 逐字错峰入场（标题逐字升起，仅 opacity + transform，无模糊重绘） ---- */
+@keyframes uiCharIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.94);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ui-char {
+    display: inline-block;
+    animation: uiCharIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---- 整块错峰入场（Logo / 副标题 / 横幅 / 卡片，motion-18 同源） ---- */
+@keyframes uiEnterIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ui-enter {
+    animation: uiEnterIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---- 页面入场（目标页面淡入 + 轻微缩放浮现，仅合成层属性，无整页模糊） ---- */
+@keyframes uiRevealIn {
+    from {
+        opacity: 0;
+        transform: scale(1.02);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.ui-reveal {
+    animation: uiRevealIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---- 整块退场（点击返回 / 跳转前，淡出上移，仅 opacity + transform） ---- */
+@keyframes uiLeaveOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-18px);
+    }
+}
+
+.ui-leave {
+    animation: uiLeaveOut 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ---- 弹窗：遮罩淡入 + 面板缩放滑入（motion-9 同源缓动） ---- */
+@keyframes uiOverlayIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes uiModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ui-overlay {
+    animation: uiOverlayIn 0.2s ease both;
+}
+
+.ui-modal {
+    animation: uiModalIn 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ---- Toast：弹性弹入（spring physics，先过冲后回落） ---- */
+@keyframes uiToastIn {
+    0% {
+        opacity: 0;
+        transform: translateX(48px) scale(0.85);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateX(-6px) scale(1.03);
+    }
+
+    80% {
+        transform: translateX(2px) scale(0.99);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.ui-toast {
+    animation: uiToastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ---- 上传区：悬停呼吸环（UploadZone，box-shadow 不受内联样式覆盖） ---- */
+.ui-upload {
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-upload:hover {
+    background: rgba(var(--accent-rgb), 0.03);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+}
+
+/* ---- 顶部导航按钮：悬停轻环 + 平滑过渡 ---- */
+.ui-nav-btn {
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.ui-nav-btn:hover {
+    box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.18);
+}
+
+.ui-nav-btn:active {
+    transform: translateY(0);
+}
+
+/* ---- 分段控件：选项悬停底色（segmented control） ---- */
+.ui-seg-btn {
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.ui-seg-btn:not([data-active='true']):hover {
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+/* ---- 表格行：悬停提亮（可循迹，design-4 同源） ---- */
+.ui-row {
+    transition: background 0.15s ease;
+}
+
+.ui-row:hover {
+    background: #fafbff;
+}
+
+/* ---- 弹窗关闭按钮：悬停变色 ---- */
+.ui-close-btn {
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.ui-close-btn:hover {
+    background: rgba(var(--accent-rgb), 0.12);
+    color: #2d3436;
+    transform: rotate(90deg);
+}
+
+/* ---- 品牌化文字选中色（typography-5） ---- */
+.ui-page ::selection {
+    background: rgba(var(--accent-rgb), 0.22);
+}
+
+/* ---- 尊重系统「减少动态效果」偏好 ---- */
+@media (prefers-reduced-motion: reduce) {
+
+    .ui-shake,
+    .ui-logo-glow,
+    .ui-rise,
+    .ui-char,
+    .ui-enter,
+    .ui-reveal,
+    .ui-leave,
+    .ui-overlay,
+    .ui-modal,
+    .ui-toast {
+        animation: none !important;
+    }
+
+    .ui-input,
+    .ui-btn-primary,
+    .ui-btn-ghost,
+    .ui-chevron,
+    .ui-tpl,
+    .ui-upload,
+    .ui-seg-btn,
+    .ui-close-btn,
+    .ui-nav-btn {
+        transition: none !important;
+    }
+}

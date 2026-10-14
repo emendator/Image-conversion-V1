@@ -1,0 +1,930 @@
+/* ============================================================
+   motion-premium.css — 高级动效层（premium motion layer）
+   ------------------------------------------------------------
+   覆盖类别（对应设计参考）：
+   - 流体与液态：极光背景（Aurora）、流光扫过（Shimmer）、
+     动态渐变文本（Gradient Wave Text）、悬浮光球（Orb）
+   - 入场/退场与过渡：滚动揭示（Scroll Reveal）、网格逐项点亮
+     （Grid Reveal）、弹簧弹性缓动（Spring Physics）
+   - 微交互与光标：磁性悬停（Magnetic Hover）、点击涟漪（Ripple）、
+     光标氛围光晕（Cursor Glow）、果冻回弹（Jelly）、
+     骨架屏波浪（Skeleton Wave）、数字滚动（Count-up，组件实现）
+   - 3D 与空间：3D 悬浮卡片（Tilt + 高光跟随 Glare）
+   - 布局与容器：毛玻璃吸顶导航（Glass Sticky Header）、
+     阅读进度指示器（Reading Progress，组件实现）、
+     弹簧开关（Springy Switch）
+   - 文本特效：逐字渐变流动标题
+   原则：transform/opacity 驱动（60fps）、克制低对比、
+   尊重 prefers-reduced-motion、仅 pointer:fine 启用光标特效
+   ============================================================ */
+
+/* ---- 全局动效变量 ---- */
+:root {
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);   /* 弹簧弹性 */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);    /* 缓出（入场同源） */
+}
+
+/* JS 就绪标记：只有开启 js-motion 才应用「隐藏态」，防止无 JS 时内容不可见 */
+.js-motion .ui-scroll-reveal,
+.js-motion .ui-grid-item {
+    opacity: 0;
+}
+
+/* ============================================================
+   ① 流体与液态 — 极光背景 / 悬浮光球 / 动态渐变
+   ============================================================ */
+
+/* 极光层：双层大尺度径向渐变缓慢漂移 + 旋转（transform 驱动，无 blur 滤镜 → 全程合成层，零逐帧重绘） */
+.ui-aurora::before,
+.ui-aurora::after {
+    content: '';
+    position: absolute;
+    inset: -30%;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 50%;
+    /* 性能：移除 blur(90px)（大尺度模糊逐帧重栅格化是掉帧主因），改以更柔和的渐变边缘模拟雾化 */
+    will-change: transform;
+}
+
+.ui-aurora::before {
+    background:
+        radial-gradient(46% 46% at 30% 35%, rgba(var(--accent-rgb), 0.30), transparent 78%),
+        radial-gradient(40% 40% at 68% 60%, rgba(var(--accent-rgb), 0.22), transparent 78%),
+        radial-gradient(34% 34% at 55% 25%, rgba(255, 255, 255, 0.12), transparent 80%);
+    animation: uiAuroraDrift 26s ease-in-out infinite alternate;
+}
+
+.ui-aurora::after {
+    background:
+        radial-gradient(42% 42% at 70% 30%, rgba(var(--accent-rgb), 0.24), transparent 78%),
+        radial-gradient(48% 48% at 25% 70%, rgba(var(--accent-rgb), 0.18), transparent 78%);
+    animation: uiAuroraDrift 34s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes uiAuroraDrift {
+    0% {
+        transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.08);
+    }
+
+    100% {
+        transform: translate3d(-2%, 4%, 0) rotate(-6deg) scale(0.96);
+    }
+}
+
+/* 悬浮光球：低频呼吸漂浮（用法：页面内绝对定位元素 + 内联位置/尺寸）
+   性能：移除 blur(70px)，仅 transform 动画（合成层，不触发重绘） */
+.ui-orb {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.5;
+    pointer-events: none;
+    animation: uiOrbFloat 22s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes uiOrbFloat {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate3d(48px, -36px, 0) scale(1.14);
+    }
+}
+
+/* 动态渐变文本：background-position 缓慢流动（配合内联渐变 + 文字透明） */
+.ui-text-flow {
+    background-size: 220% 100% !important;
+    will-change: background-position;
+}
+
+/* 与逐字入场动画组合：入场一次 + 渐变持续流动（animation-delay 同时作用于两段动画，
+   入场按字错峰、渐变相位也随字错开形成波浪感） */
+.ui-char.ui-text-flow {
+    animation:
+        uiCharIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+        uiTextFlow 6s ease-in-out infinite alternate;
+}
+
+.login-char.ui-text-flow {
+    animation:
+        loginCharIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
+        uiTextFlow 6s ease-in-out infinite alternate;
+}
+
+@keyframes uiTextFlow {
+    from {
+        background-position: 0% 50%;
+    }
+
+    to {
+        background-position: 100% 50%;
+    }
+}
+
+/* ============================================================
+   ② 流光扫过 — Shimmer（徽章持续流光 / 按钮悬停流光）
+   ============================================================ */
+
+/* 持续流光：适合徽章、Logo 等点缀元素 */
+.ui-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.ui-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 55%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    transform: translateX(-160%) skewX(-14deg);
+    animation: uiShimmerSweep 3.2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes uiShimmerSweep {
+
+    0%,
+    55% {
+        transform: translateX(-160%) skewX(-14deg);
+    }
+
+    100% {
+        transform: translateX(360%) skewX(-14deg);
+    }
+}
+
+/* 悬停流光：按钮/卡片悬停时一道光泽快速扫过 */
+.ui-btn-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.ui-btn-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -90%;
+    width: 55%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: skewX(-18deg);
+    transition: left 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.ui-btn-shimmer:not(:disabled):hover::after {
+    left: 140%;
+}
+
+/* ============================================================
+   ③ 骨架屏波浪 — Skeleton Wave
+   ============================================================ */
+.ui-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: #e9ecf4;
+    border-radius: 8px;
+}
+
+.ui-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+    transform: translateX(-100%);
+    animation: uiSkeletonWave 1.5s ease-in-out infinite;
+    border-radius: inherit;
+}
+
+@keyframes uiSkeletonWave {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+/* 高级加载指示器：双环 + 呼吸光晕（替换旧式单环） */
+.ui-spinner {
+    border-radius: 50%;
+    animation: uiSpin 0.85s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35);
+}
+
+@keyframes uiSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================
+   ④ 3D 悬浮卡片 — Tilt + 高光跟随（配合 motion.ts 驱动）
+   ============================================================ */
+.ui-tilt {
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+
+.ui-tilt-glare {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.34), transparent 46%);
+}
+
+.ui-tilt:hover .ui-tilt-glare {
+    opacity: 1;
+}
+
+/* ============================================================
+   ⑤ 磁性悬停 — Magnetic（配合 motion.ts 驱动）
+   ============================================================ */
+.ui-magnetic {
+    will-change: transform;
+}
+
+/* ============================================================
+   ⑥ 点击涟漪 — Ripple（配合 motion.ts 生成 ink 元素）
+   ============================================================ */
+.ui-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.ui-ripple-ink {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 68%);
+    transform: scale(0);
+    animation: uiRippleGrow 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes uiRippleGrow {
+    to {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+/* ============================================================
+   ⑦ 滚动揭示 / 网格逐项点亮（配合 motion.ts 观察者）
+   ============================================================ */
+.ui-scroll-reveal {
+    transform: translateY(26px);
+    transition:
+        opacity 0.7s var(--ease-out),
+        transform 0.7s var(--ease-out);
+    transition-delay: var(--reveal-delay, 0s);
+    will-change: opacity, transform;
+}
+
+.ui-scroll-reveal.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 揭示完成后解除过渡：让位给按钮悬停轻抬等原生微交互 */
+.ui-scroll-reveal.is-settled {
+    transition: none;
+}
+
+/* 网格逐项点亮：3D 翻转揭示（俯视翻起 → 落平，配容器 perspective） */
+.ui-grid-item {
+    transform: translateY(30px) rotateX(-62deg);
+    transform-origin: 50% 0;
+    opacity: 0;
+    transition:
+        opacity 0.6s var(--ease-out),
+        transform 0.6s var(--ease-out),
+        box-shadow 0.2s ease;
+    transition-delay: var(--reveal-delay, 0s);
+    will-change: opacity, transform;
+}
+
+.ui-grid-item.is-revealed {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+}
+
+/* 揭示完成后解除过渡，让位给 3D 倾斜等 JS 逐帧变换 */
+.ui-grid-item.is-settled {
+    transition: none;
+}
+
+/* ============================================================
+   ⑦-2 入场预设：弧形入场 / 弹性入场 / 3D 翻转入场
+   ============================================================ */
+
+/* 弧形入场（ArcIn）：沿优雅弧线轨迹飞入（横向偏移 + 微旋转 + 缓出） */
+@keyframes uiArcIn {
+    from {
+        opacity: 0;
+        transform: translate(-22px, 34px) rotate(-2deg) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0) scale(1);
+    }
+}
+
+.ui-arc-in {
+    animation: uiArcIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 弹性入场（BounceIn）：弹簧回弹（缩放过冲后回落） */
+@keyframes uiBounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    55% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    75% {
+        transform: scale(0.96);
+    }
+
+    90% {
+        transform: scale(1.03);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.ui-bounce-in {
+    animation: uiBounceIn 0.85s var(--spring) both;
+}
+
+/* 3D 翻转入场（FlipIn）：绕 X 轴从俯视翻起落平 */
+@keyframes uiFlipIn {
+    from {
+        opacity: 0;
+        transform: perspective(900px) rotateX(-78deg) translateY(26px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.ui-flip-in {
+    animation: uiFlipIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ============================================================
+   ⑧ 果冻回弹 / 悬浮浮动（微交互）
+   ============================================================ */
+.ui-jelly {
+    display: inline-block;
+    transition: transform 0.35s var(--spring);
+}
+
+.ui-jelly:hover {
+    animation: uiJellyBounce 0.65s var(--spring);
+}
+
+@keyframes uiJellyBounce {
+    0% {
+        transform: scale(1);
+    }
+
+    30% {
+        transform: scale(1.22) rotate(-4deg);
+    }
+
+    55% {
+        transform: scale(0.92) rotate(2deg);
+    }
+
+    75% {
+        transform: scale(1.08) rotate(-1deg);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.ui-float {
+    animation: uiFloatY 3.6s ease-in-out infinite;
+}
+
+@keyframes uiFloatY {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* 卡片内按钮箭头：悬停轻微前冲 */
+.ui-go-arrow {
+    display: inline-block;
+    transition: transform 0.3s var(--spring);
+}
+
+.ui-card-hover:hover .ui-go-arrow {
+    transform: translateX(5px);
+}
+
+/* ============================================================
+   ⑨ 毛玻璃吸顶导航（配合 motion.ts 滚动监听）
+   ============================================================ */
+/* 吸顶导航：性能版毛玻璃 —— 去掉 backdrop-filter（内容/动画变化时会持续重模糊），
+   用更高不透明度的半透明背景近似玻璃质感，只保留 box-shadow 过渡 */
+.ui-header {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(224, 227, 235, 0.65);
+    transition: box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.ui-header.scrolled {
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+}
+
+/* ============================================================
+   ⑩ 阅读进度指示器（配合 ReadingProgress 组件）
+   ============================================================ */
+.ui-reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 1200;
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    background: linear-gradient(90deg, #4f6ef7, #8b5cf6 55%, #f97316);
+    box-shadow: 0 0 14px rgba(79, 110, 247, 0.45);
+    pointer-events: none;
+    transition: transform 0.12s linear;
+}
+
+/* ============================================================
+   ⑪ 光标氛围光晕（配合 motion.ts，仅精细指针设备）
+   ============================================================ */
+.ui-cursor-glow {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 300px;
+    height: 300px;
+    margin: -150px 0 0 -150px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 850;
+    background: radial-gradient(circle, rgba(var(--accent-rgb, 79, 110, 247), 0.14), rgba(139, 92, 246, 0.07) 42%, transparent 68%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+
+/* ============================================================
+   ⑫ 弹簧开关 / 分段滑块（Springy Switch & Segmented Thumb）
+   ============================================================ */
+.ui-switch-track {
+    transition: background 0.25s ease;
+    box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.14);
+}
+
+.ui-switch-track:active .ui-switch-knob {
+    transform: scale(1.25);
+}
+
+.ui-switch-knob {
+    transition:
+        left 0.32s var(--spring),
+        transform 0.25s var(--spring),
+        box-shadow 0.25s ease;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.28);
+}
+
+.ui-seg-thumb {
+    transition: transform 0.45s var(--spring);
+    box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.35);
+    will-change: transform;
+}
+
+/* ============================================================
+   ⑬ 手风琴平滑展开（Smooth Accordion）
+   grid-template-rows 0fr→1fr 实现高度 auto 平滑过渡 + 收起时不可聚焦
+   ============================================================ */
+.ui-acc {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition:
+        grid-template-rows 0.5s var(--ease-out),
+        visibility 0s linear 0.5s;
+}
+
+.ui-acc.ui-acc-open {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition:
+        grid-template-rows 0.5s var(--ease-out);
+}
+
+.ui-acc > .ui-acc-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ============================================================
+   ⑭ 动态复选框 / 单选框：主题色 + 勾选弹跳
+   ============================================================ */
+.ui-page input[type='checkbox'],
+.ui-page input[type='radio'] {
+    accent-color: rgb(var(--accent-rgb, 79, 110, 247));
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.ui-page input[type='checkbox']:active,
+.ui-page input[type='radio']:active {
+    transform: scale(0.8);
+}
+
+.ui-page input[type='checkbox']:checked,
+.ui-page input[type='radio']:checked {
+    animation: uiCheckPop 0.3s var(--spring);
+}
+
+@keyframes uiCheckPop {
+    0% {
+        transform: scale(1);
+    }
+
+    40% {
+        transform: scale(1.35);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ============================================================
+   ⑮ 首页功能卡片（配合 motion.ts 的 tilt/magnetic）
+   ============================================================ */
+.ui-card-hover {
+    border: 2px solid transparent;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.ui-card-hover:hover {
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 28px 64px rgba(15, 23, 42, 0.16);
+}
+
+/* ============================================================
+   ⑯ 工艺细节层（detail.design 风格微调）
+   ============================================================ */
+
+/* 结果弹出揭示：生成结果出现时温和放大浮现 */
+@keyframes uiPopIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ui-pop-in {
+    animation: uiPopIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Toast 自动消失进度条（detail：让「即将消失」可见） */
+.ui-toast-progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.55);
+    transform-origin: 0 50%;
+    animation: uiToastProgress 3s linear forwards;
+    border-radius: 0 0 10px 10px;
+}
+
+@keyframes uiToastProgress {
+    to {
+        transform: scaleX(0);
+    }
+}
+
+/* 空状态：渐变图标徽章（细节：空态也要有质感与温度） */
+.ui-empty-icon {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 16px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb, 79, 110, 247), 0.10), rgba(var(--accent-rgb, 139, 92, 246), 0.10));
+    border: 1px solid rgba(var(--accent-rgb, 79, 110, 247), 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 6px 20px rgba(var(--accent-rgb, 79, 110, 247), 0.10);
+}
+
+/* 网格卡片图片：悬停轻微缩放（图库） */
+.ui-grid-item img {
+    transition: transform 0.55s var(--ease-out);
+}
+
+.ui-grid-item:hover img {
+    transform: scale(1.06);
+}
+
+/* 首页卡片：悬停主题色氛围光（替代纯黑投影） */
+.ui-card-hover:hover {
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 24px 56px rgba(var(--accent-rgb), 0.18), 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+/* ============================================================
+   ⑰ 界面工艺层 Ⅱ（detail.design 风格：渐变按钮 / 画布质感 / 步骤徽章）
+   ============================================================ */
+
+/* 渐变主按钮：按页面主题色派生（覆盖内联纯色，禁用态还原灰） */
+.ui-page-blue .ui-btn-primary {
+    background: linear-gradient(180deg, #5d7bfa 0%, #4a66ec 100%) !important;
+}
+
+.ui-page-purple .ui-btn-primary {
+    background: linear-gradient(180deg, #9d6bf7 0%, #8b5cf6 100%) !important;
+}
+
+.ui-page-orange .ui-btn-primary {
+    background: linear-gradient(180deg, #fb8b33 0%, #f97316 100%) !important;
+}
+
+.ui-btn-primary:not(:disabled) {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10), 0 4px 14px rgba(var(--accent-rgb, 79, 110, 247), 0.28);
+}
+
+.ui-btn-primary:disabled {
+    background: #b0bec5 !important;
+    box-shadow: none !important;
+}
+
+/* 设计画布质感背景：氛围光 + 细腻点阵（替代平板灰） */
+.ui-canvas-bg {
+    background:
+        radial-gradient(1100px 520px at 18% -8%, rgba(var(--accent-rgb), 0.12), transparent 55%),
+        radial-gradient(900px 460px at 88% 115%, rgba(var(--accent-rgb), 0.09), transparent 55%),
+        radial-gradient(circle at 12px 12px, rgba(15, 23, 42, 0.05) 1.1px, transparent 1.5px),
+        #eef1f6;
+    background-size: auto, auto, 24px 24px, auto;
+}
+
+/* 步骤编号徽章：工作流 01/02/03…（编辑感工艺细节） */
+.ui-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 23px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: #fff;
+    background: linear-gradient(135deg, rgb(var(--accent-rgb, 79, 110, 247)), rgb(139, 92, 246));
+    box-shadow: 0 2px 6px rgba(var(--accent-rgb, 79, 110, 247), 0.35);
+}
+
+/* ============================================================
+   ⑰-2 细节库微调（detail.design #30/#36/#75/#103）
+   ============================================================ */
+
+/* #36 更大的命中区域：关闭按钮用伪元素扩展可点击范围 */
+.ui-close-btn {
+    position: relative;
+}
+
+.ui-close-btn::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+}
+
+/* #75 灵魂输入框：主题色光标 + AI 输入框彩虹光标（slow hue） */
+.ui-input {
+    caret-color: rgb(var(--accent-rgb, 79, 110, 247));
+}
+
+.ui-caret-rainbow {
+    animation: uiCaretHue 5s ease-in-out infinite;
+}
+
+@keyframes uiCaretHue {
+    0% {
+        caret-color: #4f6ef7;
+    }
+
+    33% {
+        caret-color: #8b5cf6;
+    }
+
+    66% {
+        caret-color: #e879f9;
+    }
+
+    100% {
+        caret-color: #4f6ef7;
+    }
+}
+
+/* #30 自然图像描边：inset ring 比硬边框更柔和 */
+.ui-grid-item img {
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+/* #103 锚定滚动 / #50 嵌套滚动边界：画布内滚动不牵连整页 */
+html,
+body {
+    overscroll-behavior: none;
+}
+
+.ui-canvas-bg {
+    overscroll-behavior: contain;
+}
+
+/* #26 页脚彩蛋：悬停揭示「99 → 100」的细节宣言 */
+.ui-footer-egg {
+    position: relative;
+    display: inline-block;
+    cursor: default;
+}
+
+.ui-footer-egg > .ui-footer-egg-main {
+    transition: opacity 0.3s ease;
+}
+
+.ui-footer-egg > .ui-footer-egg-reveal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ui-footer-egg:hover > .ui-footer-egg-main {
+    opacity: 0;
+}
+
+.ui-footer-egg:hover > .ui-footer-egg-reveal {
+    opacity: 1;
+}
+
+/* ============================================================
+   ⑱ 精致滚动条 + 全局焦点环
+   ============================================================ */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #c3cdf9, #d3c3f7);
+    border-radius: 999px;
+    border: 2px solid #f7f8ff;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #aebbf6, #c4aef4);
+}
+
+.ui-page :focus-visible:not(input):not(textarea):not(select) {
+    outline: 2px solid rgb(var(--accent-rgb));
+    outline-offset: 2px;
+}
+
+/* ============================================================
+   尊重系统「减少动态效果」偏好
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+
+    .ui-aurora::before,
+    .ui-aurora::after,
+    .ui-orb,
+    .ui-text-flow,
+    .ui-shimmer::after,
+    .ui-skeleton::after,
+    .ui-spinner,
+    .ui-jelly:hover,
+    .ui-float,
+    .ui-arc-in,
+    .ui-bounce-in,
+    .ui-flip-in {
+        animation: none !important;
+    }
+
+    .ui-acc,
+    .ui-acc.ui-acc-open {
+        transition: none !important;
+    }
+
+    .ui-page input[type='checkbox'],
+    .ui-page input[type='radio'] {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .ui-btn-shimmer::after {
+        display: none !important;
+    }
+
+    .js-motion .ui-scroll-reveal,
+    .js-motion .ui-grid-item {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        transition: none !important;
+    }
+
+    .ui-cursor-glow {
+        display: none !important;
+    }
+
+    .ui-header,
+    .ui-header.scrolled {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        transition: none !important;
+    }
+
+    .ui-reading-progress {
+        display: none !important;
+    }
+
+    .ui-switch-knob,
+    .ui-switch-track,
+    .ui-seg-thumb {
+        transition: none !important;
+    }
+
+    .ui-toast-progress,
+    .ui-pop-in {
+        animation: none !important;
+    }
+
+    .ui-grid-item img {
+        transition: none !important;
+    }
+}
+
+/* 触屏设备：隐藏光标特效、弱化磁吸/倾斜 */
+@media (pointer: coarse) {
+    .ui-cursor-glow {
+        display: none !important;
+    }
+}
